@@ -1,0 +1,43 @@
+name: agent-platform
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agent
+      POSTGRES_DB: agent_platform
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent -d agent_platform"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  data-platform:
+    build:
+      context: ..
+      dockerfile: platforms/data-platform/Dockerfile
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://agent:agent@postgres:5432/agent_platform
+    ports: ["8001:8001"]
+    depends_on: {postgres: {condition: service_healthy}}
+
+  eval-platform:
+    build:
+      context: ..
+      dockerfile: platforms/eval-platform/Dockerfile
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://agent:agent@postgres:5432/agent_platform
+    ports: ["8002:8002"]
+    depends_on: {postgres: {condition: service_healthy}}
+
+volumes:
+  pgdata:

@@ -1,0 +1,58 @@
+﻿name: retail-knowledge-agent
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agent
+      POSTGRES_DB: retail_knowledge
+    ports: ["5433:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent -d retail_knowledge"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6380:6379"]
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    ports: ["6334:6333"]
+    volumes: ["qdrant_data:/qdrant/storage"]
+
+  opensearch:
+    image: opensearchproject/opensearch:2.19.0
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports: ["9201:9200"]
+
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/neo4j123
+    ports: ["7475:7474", "7688:7687"]
+    volumes: ["neo4j_data:/data"]
+
+  retail-knowledge-agent:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://agent:agent@postgres:5432/retail_knowledge
+      QDRANT_URL: http://qdrant:6333
+      OPENSEARCH_URL: http://opensearch:9200
+      NEO4J_URL: http://neo4j:7474
+    ports: ["8011:8011"]
+    depends_on: {postgres: {condition: service_healthy}}
+
+volumes:
+  pgdata:
+  qdrant_data:
+  neo4j_data:

@@ -1,0 +1,20 @@
+[project]
+name = "agent-platform"
+version = "1.0.0"
+description = "Shared data and evaluation platform for enterprise AI agents"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv.workspace]
+members = ["packages/common", "platforms/data-platform", "platforms/eval-platform"]
+
+[tool.uv.sources]
+agent-common = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["platforms"]
+addopts = "-q"
